@@ -1,0 +1,148 @@
+### Summary: Setting Up a Conda Environment with `sitecustomize.py`
+
+This guide will walk you through the steps to:
+1. **Set up a Conda environment**.
+2. **Locate the `site-packages` directory**.
+3. **Add a `sitecustomize.py` file** to log all output and errors.
+
+---
+
+### Step 1: Create a New Conda Environment
+
+1. **Create the Conda environment with Python 3.10**:
+   ```bash
+   conda create --name code_watchdog python=3.10 -y
+   ```
+
+2. **Activate the environment**:
+   ```bash
+   conda activate code_watchdog
+   ```
+
+---
+
+### Step 2: Locate the `site-packages` Directory
+
+1. **Find the `site-packages` directory** for your Conda environment:
+   ```bash
+   python -c "import site; print(site.getsitepackages())"
+   ```
+
+2. **Example output**:
+   ```
+   ['/Users/username/miniconda3/envs/code_watchdog/lib/python3.10/site-packages']
+   ```
+
+3. **Navigate to the directory**:
+   ```bash
+   cd /Users/username/miniconda3/envs/code_watchdog/lib/python3.10/site-packages
+   ```
+
+---
+
+### Step 3: Create the `sitecustomize.py` File
+
+1. **Create the `sitecustomize.py` file** in the `site-packages` directory:
+   ```bash
+   touch sitecustomize.py
+   ```
+
+2. **Edit the file** using your preferred text editor:
+   ```bash
+   nano sitecustomize.py
+   ```
+
+3. **Paste the following code** into the file to log all output and errors:
+
+   **`sitecustomize.py`**:
+   ```python
+   import sys
+   import os
+
+   # Define the log directory and log file path
+   log_dir = os.path.expanduser("~/.cw")
+   log_file_path = os.path.join(log_dir, "output.log")
+
+   # Create the directory if it doesn't exist
+   os.makedirs(log_dir, exist_ok=True)
+
+   class Tee:
+       """A class to log everything to both console and a file."""
+       def __init__(self, filename):
+           self.file = open(filename, 'w')  # Overwrite the file on each run
+           self.stdout = sys.stdout  # Original stdout
+           self.stderr = sys.stderr  # Original stderr
+
+       def write(self, message):
+           """Write to both the console and the log file."""
+           self.stdout.write(message)  # Print to console
+           self.file.write(message)  # Log to the file
+           self.file.flush()  # Ensure log is written immediately
+
+       def flush(self):
+           """Ensure both console and file are properly flushed."""
+           self.stdout.flush()
+           self.file.flush()
+
+   # Redirect both stdout and stderr to our Tee instance
+   tee = Tee(log_file_path)
+   sys.stdout = tee
+   sys.stderr = tee
+
+   print("Logging started. All output and errors will be logged.")
+   ```
+
+4. **Save and close the file** (`Ctrl + O` to save, `Ctrl + X` to exit in `nano`).
+
+---
+
+### Step 4: Test the Setup
+
+1. **Create a test script** (`test_script.py`):
+   ```python
+   print("This is normal output.")
+   raise ValueError("This is a test error.")
+   ```
+
+2. **Run the test script**:
+   ```bash
+   python test_script.py
+   ```
+
+3. **Check the log file** to confirm everything was logged:
+   ```bash
+   cat ~/.cw/output.log
+   ```
+
+---
+
+### Expected Behavior
+
+- **In the console**:
+  ```
+  Logging started. All output and errors will be logged.
+  This is normal output.
+  Traceback (most recent call last):
+    File "test_script.py", line 2, in <module>
+      raise ValueError("This is a test error.")
+  ValueError: This is a test error.
+  ```
+
+- **In the log file (`~/.cw/output.log`)**:
+  ```
+  Logging started. All output and errors will be logged.
+  This is normal output.
+  Traceback (most recent call last):
+    File "test_script.py", line 2, in <module>
+      raise ValueError("This is a test error.")
+  ValueError: This is a test error.
+  ```
+
+---
+
+### Recap
+
+1. **Create a Conda environment** with Python 3.10.
+2. **Locate the `site-packages` directory** using `site.getsitepackages()`.
+3. **Add `sitecustomize.py`** to the `site-packages` directory to log all output and errors.
+4. **Test the setup** with a sample script and confirm that the log file behaves as expected.

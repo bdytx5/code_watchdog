@@ -1,0 +1,110 @@
+### Tutorial: Run `file_monitor.py` Automatically on Conda Environment Activation
+
+This guide will show you how to **automatically run `file_monitor.py`** every time you activate the `code_watchdog` Conda environment, and stop it on deactivation.
+
+---
+
+### Step 1: Set Up the `activate.d` and `deactivate.d` Directories
+
+1. **Create the `activate.d` directory**:
+   ```bash
+   mkdir -p /Users/brettyoung/miniconda3/envs/code_watchdog/etc/conda/activate.d
+   ```
+
+2. **Create the `deactivate.d` directory**:
+   ```bash
+   mkdir -p /Users/brettyoung/miniconda3/envs/code_watchdog/etc/conda/deactivate.d
+   ```
+
+---
+
+### Step 2: Create the Activation Script
+
+1. **Create the activation script**:
+   ```bash
+   nano /Users/brettyoung/miniconda3/envs/code_watchdog/etc/conda/activate.d/start_monitor.sh
+   ```
+
+2. **Add the following content** to the script:
+
+   ```bash
+   #!/bin/bash
+
+   # Start the Python monitor script in the background and log output
+   nohup python /Users/brettyoung/Desktop/dev_24/tutorials/code_watchdog/file_monitor.py > ~/.cw/monitor.log 2>&1 &
+   echo "Python file monitor started."
+   ```
+
+3. **Make the script executable**:
+   ```bash
+   chmod +x /Users/brettyoung/miniconda3/envs/code_watchdog/etc/conda/activate.d/start_monitor.sh
+   ```
+
+---
+
+### Step 3: Create the Deactivation Script
+
+1. **Create the deactivation script**:
+   ```bash
+   nano /Users/brettyoung/miniconda3/envs/code_watchdog/etc/conda/deactivate.d/stop_monitor.sh
+   ```
+
+2. **Add the following content**:
+
+   ```bash
+   #!/bin/bash
+
+   # Stop the file monitor script
+   pkill -f file_monitor.py
+   echo "Python file monitor stopped."
+   ```
+
+3. **Make the script executable**:
+   ```bash
+   chmod +x /Users/brettyoung/miniconda3/envs/code_watchdog/etc/conda/deactivate.d/stop_monitor.sh
+   ```
+
+---
+
+### Step 4: Test the Setup
+
+1. **Activate the environment**:
+   ```bash
+   conda activate code_watchdog
+   ```
+
+   You should see:
+   ```
+   Python file monitor started.
+   ```
+
+2. **Create or modify a Python file on your Desktop** to ensure the monitor works:
+   ```bash
+   touch ~/Desktop/test_monitor.py
+   ```
+
+3. **Check the log file** to confirm the change was logged:
+   ```bash
+   cat ~/.cw/monitor.log
+   ```
+
+4. **Deactivate the environment**:
+   ```bash
+   conda deactivate
+   ```
+
+   You should see:
+   ```
+   Python file monitor stopped.
+   ```
+
+---
+
+### Summary
+
+With this setup:
+- **The file monitor starts automatically** when you activate the `code_watchdog` environment.
+- **The monitor stops gracefully** when you deactivate the environment.
+- All logs are written to `~/.cw/monitor.log`.
+
+This ensures the **monitor runs only when needed** and keeps your environment clean when not in use.
