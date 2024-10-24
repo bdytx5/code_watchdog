@@ -46,22 +46,23 @@ class Tee:
 class ErrorLogger:
     """A class to log stderr messages to both output.log and error_output.log."""
     def __init__(self, error_filename, all_output_filename):
+        # Open error log in 'w' mode to overwrite each time
         self.error_filename = error_filename
+        self.error_file = open(error_filename, 'w')  # Write mode (overwrites)
         self.all_output_file = open(all_output_filename, 'a')  # Append mode
         self.stderr = sys.__stderr__  # Original stderr
         self.error_logged = False  # Track if an error was logged
         self.closed = False  # Track if the files have been closed
 
     def write(self, message):
-        """Write errors to both error_output.log and output.log."""
+        """Write errors to both error_output.log (overwrite) and output.log (append)."""
         if not self.closed:
-            # Log to the error log only if an actual error is logged
-            with open(self.error_filename, 'a') as error_file:
-                error_file.write(message)
-                error_file.flush()
+            self.error_file.write(message)
+            self.error_file.flush()  # Ensure log is updated immediately
 
             self.all_output_file.write(message)
             self.all_output_file.flush()
+
             self.error_logged = True  # Track that an error was logged
 
         self.stderr.write(message)  # Print to the console
@@ -69,14 +70,22 @@ class ErrorLogger:
     def flush(self):
         """Ensure all files are properly flushed."""
         if not self.closed:
+            self.error_file.flush()
             self.all_output_file.flush()
         self.stderr.flush()
 
     def close(self):
         """Close the log files if they are still open."""
         if not self.closed:
+            self.error_file.close()
             self.all_output_file.close()
             self.closed = True
+
+# Ensure log files are properly closed on exit
+def cleanup():
+    """Clean up resources by closing log files."""
+    output_logger.close()
+    error_logger.close()
 
 def log_recent_script():
     """Log the path of the most recently run Python script if it's within the Desktop directory."""
