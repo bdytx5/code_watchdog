@@ -1,12 +1,13 @@
-# monitors errors, console output, and python file execution 
+# Monitors errors, console output, and Python file execution
 import sys
 import os
 from pathlib import Path
+import atexit  # Ensures cleanup happens when the script exits
 
 # Define log directories and files
 log_dir = os.path.expanduser("~/.cw")
 all_output_log = os.path.join(log_dir, "output.log")  # Logs all console I/O (appends)
-error_log_path = os.path.join(log_dir, "error_output.log")  # Logs only errors (appends)
+error_log_path = os.path.join(log_dir, "error_output.log")  # Logs only errors
 monitor_log = Path("~/.cw/python_file_changes.log").expanduser()
 
 # Create the directory if it doesn't exist
@@ -46,46 +47,39 @@ class Tee:
 class ErrorLogger:
     """A class to log stderr messages to both output.log and error_output.log."""
     def __init__(self, error_filename, all_output_filename):
-        # Open error log in 'w' mode to overwrite each time
         self.error_filename = error_filename
-        self.error_file = open(error_filename, 'w')  # Write mode (overwrites)
         self.all_output_file = open(all_output_filename, 'a')  # Append mode
         self.stderr = sys.__stderr__  # Original stderr
         self.error_logged = False  # Track if an error was logged
         self.closed = False  # Track if the files have been closed
 
     def write(self, message):
-        """Write errors to both error_output.log (overwrite) and output.log (append)."""
+        """Write errors to both error_output.log (only if new error) and output.log (append)."""
         if not self.closed:
-            self.error_file.write(message)
-            self.error_file.flush()  # Ensure log is updated immediately
-
+            # Log to output.log
             self.all_output_file.write(message)
             self.all_output_file.flush()
 
-            self.error_logged = True  # Track that an error was logged
+            # Log to error_output.log and set error_logged to True
+            with open(self.error_filename, 'w' if not self.error_logged else 'a') as error_file:
+                error_file.write(message)
+                error_file.flush()
+
+            self.error_logged = True  # Mark that an error was logged
 
         self.stderr.write(message)  # Print to the console
 
     def flush(self):
         """Ensure all files are properly flushed."""
         if not self.closed:
-            self.error_file.flush()
             self.all_output_file.flush()
         self.stderr.flush()
 
     def close(self):
         """Close the log files if they are still open."""
         if not self.closed:
-            self.error_file.close()
             self.all_output_file.close()
             self.closed = True
-
-# Ensure log files are properly closed on exit
-def cleanup():
-    """Clean up resources by closing log files."""
-    output_logger.close()
-    error_logger.close()
 
 def log_recent_script():
     """Log the path of the most recently run Python script if it's within the Desktop directory."""
@@ -115,5 +109,5 @@ def cleanup():
     output_logger.close()
     error_logger.close()
 
-import atexit  # Ensure cleanup happens when the script exits
+# Register cleanup to run when the script exits
 atexit.register(cleanup)
