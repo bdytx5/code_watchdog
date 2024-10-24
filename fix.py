@@ -90,7 +90,7 @@ def generate_fix_with_anthropic(error_log: str, recent_output: str, file_content
 
     # Create the message using the Messages API
     message = client.messages.create(
-        model="claude-3-5-sonnet-20241022", 
+        model="claude-3-5-sonnet-latest", 
         max_tokens=1024,
         temperature=0,
         system="You are an expert Python programmer. Help resolve code errors efficiently.",
